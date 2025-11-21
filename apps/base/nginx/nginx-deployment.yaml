@@ -6,7 +6,7 @@ spec:
   selector:
     matchLabels:
       app: nginx
-  replicas: 3 # You can adjust the number of replicas
+  replicas: 2 # You can adjust the number of replicas
   template:
     metadata:
       labels:
