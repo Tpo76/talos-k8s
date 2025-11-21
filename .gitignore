@@ -1,0 +1,34 @@
+# SOPS / Age encryption keys (NEVER commit these!)
+*.agekey
+keys.txt
+.config/sops/
+
+# Unencrypted secret files
+*secret*.yaml
+!*secret*.yaml.template
+# BUT allow encrypted secrets (they have sops metadata)
+# Manual review recommended before committing any *secret*.yaml files
+
+# Kubeconfig files (may contain credentials)
+kubeconfig
+*.kubeconfig
+
+# Terraform / Tofu state files (if using IaC)
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak

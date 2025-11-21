@@ -1,0 +1,17 @@
+# SOPS Configuration
+# This file tells SOPS how to encrypt secrets
+#
+# SETUP INSTRUCTIONS:
+# 1. Generate an age key: age-keygen -o ~/.config/sops/age/keys.txt
+# 2. Copy this file: cp .sops.yaml.template .sops.yaml
+# 3. Replace YOUR_AGE_PUBLIC_KEY_HERE with your age public key (starts with age1...)
+# 4. Commit .sops.yaml (it's safe, contains only public key)
+#
+# The public key looks like: age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+creation_rules:
+  # Encrypt all YAML files in the repository
+  - path_regex: .*.yaml
+    # Only encrypt the data and stringData fields (for Secrets)
+    encrypted_regex: ^(data|stringData)$
+    age: age1wz30awrey9tp8w8wxcdrccsn57x9ccnz9250u8tv3thc3kr7nqjsqv7m6t
