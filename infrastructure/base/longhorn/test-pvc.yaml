@@ -1,0 +1,41 @@
+---
+# Test PersistentVolumeClaim to verify Longhorn storage works
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: longhorn-test-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Test pod that uses the PVC
+apiVersion: v1
+kind: Pod
+metadata:
+  name: longhorn-test-pod
+  namespace: default
+spec:
+  containers:
+    - name: test
+      image: busybox:latest
+      command:
+        - sh
+        - -c
+        - |
+          echo "Writing to Longhorn volume..."
+          echo "Test data from $(date)" > /data/test.txt
+          cat /data/test.txt
+          echo "Success! Sleeping..."
+          sleep 3600
+      volumeMounts:
+        - name: longhorn-vol
+          mountPath: /data
+  volumes:
+    - name: longhorn-vol
+      persistentVolumeClaim:
+        claimName: longhorn-test-pvc

@@ -1,0 +1,89 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: longhorn
+  namespace: longhorn-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: longhorn
+      version: 1.7.2  # Latest stable version as of January 2025
+      sourceRef:
+        kind: HelmRepository
+        name: longhorn
+        namespace: longhorn-system
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+    createNamespace: false  # We create namespace separately
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    # Talos-specific settings
+    defaultSettings:
+      # Set default replica count (2 workers = 2 replicas)
+      defaultReplicaCount: 2
+
+      # Talos uses /var/mnt/longhorn as mount point (configured in Omni)
+      defaultDataPath: /var/mnt/longhorn
+
+      # Guaranteed engine CPU for performance
+      guaranteedEngineManagerCPU: 12
+      guaranteedReplicaManagerCPU: 12
+
+    # Persistence settings
+    persistence:
+      defaultClass: true  # Make Longhorn the default StorageClass
+      defaultClassReplicaCount: 2  # Match defaultReplicaCount
+      reclaimPolicy: Retain  # Keep data if PVC is deleted (safer)
+
+    # Enable Longhorn UI
+    ingress:
+      enabled: false  # Set to true if you want to expose via ingress
+      # host: longhorn.yourdomain.com
+      # annotations:
+      #   cert-manager.io/cluster-issuer: letsencrypt-prod
+
+    # Service configuration for UI
+    service:
+      ui:
+        # type: ClusterIP  # Use ClusterIP, access via port-forward or ingress
+        type: LoadBalancer  # Uncomment to expose via MetalLB
+
+    # Tolerations for control-plane nodes (if you want to use them)
+    # longhornManager:
+    #   tolerations:
+    #     - key: node-role.kubernetes.io/control-plane
+    #       operator: Exists
+    #       effect: NoSchedule
+
+    # Resource limits (adjust based on your cluster size)
+    longhornManager:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 1000m
+          memory: 512Mi
+
+    longhornDriver:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+
+    longhornUI:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
