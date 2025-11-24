@@ -8,7 +8,7 @@ spec:
   chart:
     spec:
       chart: longhorn
-      version: 1.7.2  # Latest stable version as of January 2025
+      version: 1.10.1  # Latest stable (Nov 2024) - includes Talos bug fixes
       sourceRef:
         kind: HelmRepository
         name: longhorn
@@ -18,9 +18,11 @@ spec:
     remediation:
       retries: 3
     createNamespace: false  # We create namespace separately
+    timeout: 20m  # Increase timeout for slower clusters
   upgrade:
     remediation:
       retries: 3
+    timeout: 20m  # Increase timeout for slower clusters
   values:
     # Talos-specific settings
     defaultSettings:
@@ -30,9 +32,15 @@ spec:
       # Talos uses /var/mnt/longhorn as mount point (configured in Omni)
       defaultDataPath: /var/mnt/longhorn
 
-      # Guaranteed engine CPU for performance
+      # Guaranteed engine CPU for performance (percentage: 12 = 12%)
       guaranteedEngineManagerCPU: 12
       guaranteedReplicaManagerCPU: 12
+
+      # Auto-balance replicas across nodes for better distribution
+      replicaAutoBalance: best-effort
+
+      # Faster volume deletion (safe with Retain reclaim policy)
+      nodeDownPodDeletionPolicy: delete-both-statefulset-and-deployment-pod
 
     # Persistence settings
     persistence:
