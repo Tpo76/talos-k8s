@@ -2,3 +2,4 @@ resources:
   - metallb
   - tailscale
   - longhorn
+  - traefik

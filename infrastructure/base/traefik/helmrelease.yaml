@@ -1,0 +1,194 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: traefik
+  namespace: traefik
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: traefik
+      version: 37.4.0  # Latest stable from ArtifactHub (Dec 2024)
+      sourceRef:
+        kind: HelmRepository
+        name: traefik
+        namespace: traefik
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+    createNamespace: false  # We create namespace separately
+    timeout: 10m
+  upgrade:
+    remediation:
+      retries: 3
+    timeout: 10m
+  values:
+    # Deployment configuration
+    deployment:
+      enabled: true
+      replicas: 2  # HA setup for production
+
+    # Service configuration - LoadBalancer via MetalLB
+    service:
+      enabled: true
+      type: LoadBalancer
+      # MetalLB will assign an IP from the pool (192.168.0.200-250)
+      annotations:
+        metallb.universe.tf/allow-shared-ip: traefik  # Allow sharing IP for multiple services
+      spec:
+        externalTrafficPolicy: Local  # Preserve source IP
+      # Port configurations
+      ports:
+        web:
+          port: 80
+          expose:
+            default: true
+          exposedPort: 80
+          protocol: TCP
+        websecure:
+          port: 443
+          expose:
+            default: true
+          exposedPort: 443
+          protocol: TCP
+          # Enable HTTP/3 (QUIC)
+          http3:
+            enabled: true
+          tls:
+            enabled: true
+            # Default certificate resolver (configure cert-manager later)
+        metrics:
+          port: 9100
+          expose:
+            default: false  # Don't expose metrics externally
+          protocol: TCP
+
+    # Ports configuration
+    ports:
+      web:
+        port: 8000
+        expose:
+          default: true
+        exposedPort: 80
+        protocol: TCP
+        # Redirect HTTP to HTTPS (uncomment when TLS is configured)
+        # redirectTo:
+        #   port: websecure
+      websecure:
+        port: 8443
+        expose:
+          default: true
+        exposedPort: 443
+        protocol: TCP
+        http3:
+          enabled: true
+        tls:
+          enabled: true
+      metrics:
+        port: 9100
+        expose:
+          default: false
+        protocol: TCP
+      traefik:
+        port: 9000
+        expose:
+          default: false  # Dashboard not exposed externally
+        protocol: TCP
+
+    # IngressRoute for dashboard (accessible via LoadBalancer)
+    ingressRoute:
+      dashboard:
+        enabled: true
+        matchRule: Host(`traefik.local`)
+        entryPoints: ["web"]
+
+    # Provider configuration
+    providers:
+      kubernetesCRD:
+        enabled: true
+        allowCrossNamespace: true  # Allow referencing resources across namespaces
+        allowExternalNameServices: true
+      kubernetesIngress:
+        enabled: true
+        allowExternalNameServices: true
+        publishedService:
+          enabled: true  # Use LoadBalancer service IP
+
+    # Logs
+    logs:
+      general:
+        level: INFO  # Options: DEBUG, INFO, WARN, ERROR
+      access:
+        enabled: true  # Enable access logs
+        filters: {}
+
+    # Metrics - Prometheus
+    metrics:
+      prometheus:
+        enabled: true
+        entryPoint: metrics
+        addEntryPointsLabels: true
+        addRoutersLabels: true
+        addServicesLabels: true
+
+    # Global arguments
+    globalArguments:
+      - "--global.checknewversion=false"
+      - "--global.sendanonymoususage=false"
+
+    # Additional arguments
+    additionalArguments:
+      # Enable Kubernetes Ingress provider
+      - "--providers.kubernetesingress.ingressclass=traefik"
+      # Enable access logs in JSON format
+      - "--accesslog=true"
+      - "--accesslog.format=json"
+
+    # Resource limits
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 1000m
+        memory: 512Mi
+
+    # Security context
+    securityContext:
+      capabilities:
+        drop: [ALL]
+      readOnlyRootFilesystem: true
+      runAsGroup: 65532
+      runAsNonRoot: true
+      runAsUser: 65532
+
+    podSecurityContext:
+      fsGroup: 65532
+      fsGroupChangePolicy: "OnRootMismatch"
+
+    # Rolling update strategy
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 1
+
+    # Pod disruption budget for HA
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+
+    # Affinity - spread pods across nodes
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - traefik
+              topologyKey: kubernetes.io/hostname
