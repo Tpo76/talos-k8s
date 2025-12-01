@@ -24,6 +24,12 @@ spec:
       retries: 3
     timeout: 10m
   values:
+    # TLS configuration - use wildcard certificate as default
+    tlsStore:
+      default:
+        defaultCertificate:
+          secretName: wildcard-int-centreon-com-tls
+
     # Deployment configuration
     deployment:
       enabled: true
@@ -85,6 +91,12 @@ spec:
           enabled: true
         tls:
           enabled: true
+          # Default wildcard certificate for *.int.centreon.com
+          certificateResolver: ""
+          domains:
+            - main: "*.int.centreon.com"
+              sans:
+                - "int.centreon.com"
       metrics:
         port: 9100
         expose:

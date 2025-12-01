@@ -1,0 +1,98 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: cert-manager
+      version: 1.19.x  # Latest 1.19 patch version (auto-updates for bugfixes)
+      sourceRef:
+        kind: HelmRepository
+        name: jetstack
+        namespace: cert-manager
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+    createNamespace: false  # We create namespace separately
+    timeout: 10m
+  upgrade:
+    remediation:
+      retries: 3
+    timeout: 10m
+  values:
+    # Install CRDs as part of the Helm release
+    installCRDs: true
+
+    # Global settings
+    global:
+      leaderElection:
+        namespace: cert-manager
+
+    # Replica count for HA
+    replicaCount: 2
+
+    # Resource limits for controller
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+    # Webhook configuration
+    webhook:
+      replicaCount: 2
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+
+    # CA Injector configuration
+    cainjector:
+      replicaCount: 2
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+
+    # Prometheus monitoring
+    prometheus:
+      enabled: true
+      servicemonitor:
+        enabled: false  # Enable when Prometheus is installed
+
+    # Security context
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+
+    # Pod disruption budgets for HA
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+
+    # Affinity - spread pods across nodes
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - cert-manager
+              topologyKey: kubernetes.io/hostname

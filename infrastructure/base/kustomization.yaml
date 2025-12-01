@@ -2,4 +2,5 @@ resources:
   - metallb
   - tailscale
   - longhorn
+  - cert-manager
   - traefik

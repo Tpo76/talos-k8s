@@ -4,5 +4,3 @@ resources:
   - namespace.yaml
   - helmrepository.yaml
   - helmrelease.yaml
-  - ingressclass.yaml
-  - wildcard-cert-secret.yaml
