@@ -1,0 +1,8 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: jeffresc
+  namespace: it-tools
+spec:
+  interval: 12h
+  url: https://charts.jeffresc.dev
