@@ -31,8 +31,6 @@ spec:
     ingress:
       enabled: true
       className: traefik
-      annotations:
-        traefik.ingress.kubernetes.io/router.middlewares: default-redirect-https@kubernetescrd
       hosts:
         - host: it-tools.int.centreon.com
           paths:
