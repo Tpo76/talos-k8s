@@ -4,3 +4,4 @@ resources:
   - longhorn
   - cert-manager
   - traefik
+  - external-dns
