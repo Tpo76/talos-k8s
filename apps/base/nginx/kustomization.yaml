@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: default
 resources:
   - nginx-deployment.yaml
+  - ingress.yaml
