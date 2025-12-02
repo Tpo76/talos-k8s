@@ -27,31 +27,19 @@ spec:
     # Replica count
     replicaCount: 2
 
-    # Image configuration
-    image:
-      repository: corentinth/it-tools
-      pullPolicy: IfNotPresent
-      tag: ""  # Uses chart's default version
-
-    # Service configuration
-    service:
-      type: ClusterIP
-      port: 80
-
     # Ingress configuration
     ingress:
       enabled: true
       className: traefik
       annotations:
-        cert-manager.io/cluster-issuer: ""
+        traefik.ingress.kubernetes.io/router.middlewares: default-redirect-https@kubernetescrd
       hosts:
         - host: it-tools.int.centreon.com
           paths:
             - path: /
               pathType: Prefix
       tls:
-        - secretName: ""  # Uses default wildcard certificate
-          hosts:
+        - hosts:
             - it-tools.int.centreon.com
 
     # Resource limits
@@ -62,35 +50,6 @@ spec:
       limits:
         cpu: 200m
         memory: 128Mi
-
-    # Pod security
-    securityContext:
-      runAsNonRoot: true
-      runAsUser: 1000
-      fsGroup: 1000
-
-    # Container security
-    containerSecurityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - ALL
-      readOnlyRootFilesystem: true
-
-    # Health probes
-    livenessProbe:
-      httpGet:
-        path: /
-        port: http
-      initialDelaySeconds: 30
-      periodSeconds: 10
-
-    readinessProbe:
-      httpGet:
-        path: /
-        port: http
-      initialDelaySeconds: 5
-      periodSeconds: 5
 
     # Affinity - spread across nodes
     affinity:
