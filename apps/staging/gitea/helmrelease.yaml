@@ -26,13 +26,27 @@ spec:
   values:
     replicaCount: 1
 
+    # Disable PostgreSQL HA and use built-in SQLite
+    postgresql-ha:
+      enabled: false
+
+    postgresql:
+      enabled: false
+
+    # Disable Valkey/Redis cluster
+    valkey-cluster:
+      enabled: false
+
+    valkey:
+      enabled: false
+
     # Persistence
     persistence:
       enabled: true
       size: 5Gi
       storageClass: longhorn
 
-    # Embedded SQLite (no external DB)
+    # Gitea configuration (SQLite by default when DB disabled)
     gitea:
       config:
         database:
