@@ -1,0 +1,148 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: harbor
+  namespace: harbor
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: harbor
+      version: 1.18.x
+      sourceRef:
+        kind: HelmRepository
+        name: harbor
+        namespace: harbor
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+    createNamespace: false
+    timeout: 15m
+  upgrade:
+    remediation:
+      retries: 3
+    timeout: 15m
+
+  # Inject database password from secret
+  valuesFrom:
+    - kind: Secret
+      name: harbor-database
+      valuesKey: POSTGRES_PASSWORD
+      targetPath: database.internal.password
+
+  values:
+    # Expose configuration
+    expose:
+      type: ingress
+      tls:
+        enabled: true
+        certSource: none  # Traefik handles TLS
+      ingress:
+        hosts:
+          core: harbor.int.centreon.com
+        className: traefik
+        annotations:
+          traefik.ingress.kubernetes.io/router.entrypoints: websecure
+          traefik.ingress.kubernetes.io/router.tls: "true"
+
+    # External URL (must match ingress)
+    externalURL: https://harbor.int.centreon.com
+
+    # Admin password from secret
+    existingSecretAdminPassword: harbor-core
+    existingSecretAdminPasswordKey: HARBOR_ADMIN_PASSWORD
+
+    # Internal PostgreSQL database
+    database:
+      type: internal
+      internal:
+        shmSizeLimit: 512Mi
+
+    # Disable optional components to save resources
+    trivy:
+      enabled: false
+
+    notary:
+      enabled: false
+
+    chartmuseum:
+      enabled: false
+
+    # Persistence configuration
+    persistence:
+      enabled: true
+      resourcePolicy: keep  # Keep volumes on uninstall (like Longhorn Retain)
+      persistentVolumeClaim:
+        registry:
+          size: 8Gi
+          storageClass: longhorn
+          accessMode: ReadWriteOnce
+        database:
+          size: 2Gi
+          storageClass: longhorn
+          accessMode: ReadWriteOnce
+        redis:
+          size: 1Gi
+          storageClass: longhorn
+          accessMode: ReadWriteOnce
+
+    # Image storage configuration
+    imageChartStorage:
+      type: filesystem
+      disableredirect: false
+      filesystem:
+        rootdirectory: /storage
+
+    # Resource limits for components
+    portal:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 256Mi
+
+    core:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 1000m
+          memory: 512Mi
+
+    jobservice:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 1000m
+          memory: 512Mi
+
+    registry:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+
+      # Enable registry upload purging (cleanup temp files)
+      upload_purging:
+        enabled: true
+        age: 168h  # 7 days
+        interval: 24h
+        dryrun: false
+
+    registryctl:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 256Mi
