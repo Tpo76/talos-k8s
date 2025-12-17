@@ -75,7 +75,7 @@ spec:
       resourcePolicy: keep  # Keep volumes on uninstall (like Longhorn Retain)
       persistentVolumeClaim:
         registry:
-          size: 8Gi
+          size: 4Gi
           storageClass: longhorn
           accessMode: ReadWriteOnce
         database:
